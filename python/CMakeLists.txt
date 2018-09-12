@@ -31,7 +31,7 @@ endif()
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    DESTINATION ${GR_PYTHON_DIR}/svl
+    DESTINATION ${GR_PYTHON_DIR}/hydra
 )
 
 ########################################################################
@@ -39,7 +39,8 @@ GR_PYTHON_INSTALL(
 ########################################################################
 include(GrTest)
 
-set(GR_TEST_TARGET_DEPS gnuradio-svl)
+set(GR_TEST_TARGET_DEPS gnuradio-hydra)
 set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
-GR_ADD_TEST(qa_svl_sink ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_svl_sink.py)
-GR_ADD_TEST(qa_svl_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_svl_source.py)
+GR_ADD_TEST(qa_hydra_sink ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_hydra_sink.py)
+GR_ADD_TEST(qa_hydra_async_sink ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_hydra_async_sink.py)
+GR_ADD_TEST(qa_hydra_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_hydra_source.py)
