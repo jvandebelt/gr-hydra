@@ -21,143 +21,103 @@
 #ifndef INCLUDED_HYDRA_VIRTUAL_RADIO_H
 #define INCLUDED_HYDRA_VIRTUAL_RADIO_H
 
-#include <hydra/api.h>
-#include <hydra/hydra_fft.h>
 #include <hydra/types.h>
+#include <hydra/hydra_fft.h>
+#include <hydra/hydra_socket.h>
+#include <hydra/hydra_buffer.h>
+#include <hydra/hydra_stats.h>
 
 #include <vector>
+#include <mutex>
+#include <boost/format.hpp>
 
-namespace gr {
-	namespace hydra {
+namespace hydra {
 
-class Hypervisor;
-
-class HYDRA_API VirtualRadio
+class VirtualRadio
 {
- private:
-  size_t fft_n_len; // Subcarriers used by this VRadio
-  int g_idx;        // Radio unique ID
-  double g_cf;      // Central frequency
-  double g_bw;      // Bandwidth 
-
-  samples_vec g_tx_samples;
-  samples_vec g_rx_samples;
-
-  sfft_complex g_fft_complex;
-  sfft_complex g_ifft_complex;
-
-  iq_map_vec g_iq_map;
-
-  // pointer to this VR hypervisor
-  Hypervisor &g_hypervisor;
-
- public:
+public:
   /** CTOR
-   * @param hypervisor
-   * @param _idx
-   * @param central_frequency
-   * @param bandwidth
-   * @param _fft_n_len
    */
-  VirtualRadio(Hypervisor &hypervisor,
-               size_t _idx,
-               double central_frequency,
-               double bandwidth,
-               size_t _fft_n_len);
+ VirtualRadio(size_t _idx, Hypervisor *hypervisor);
+
+ int set_rx_chain(unsigned int u_rx_udp,
+                  double d_rx_centre_freq,
+                  double d_rx_bw);
+
+ int set_tx_chain(unsigned int u_tx_udp,
+                  double d_tx_centre_freq,
+                  double d_tx_bw,
+                  bool b_pad = false);
 
   /** Return VRadio unique ID
    * @return VRadio ID
    */
-  int const get_id()
-  {
-    return g_idx;
-  }
+  int const get_id() {return g_idx;}
 
-  /**
-   * @return fft_n_len
-   */
-  size_t const get_subcarriers()
-  {
-    return fft_n_len;
-  }
+  bool const get_tx_enabled(){ return true; };
+  size_t const get_tx_udp_port(){ return g_tx_udp_port; }
+  size_t const get_tx_fft() {return g_rx_fft_size;}
+  double const get_tx_freq() { return g_tx_cf; }
+  double const get_tx_bandwidth() {return g_tx_bw;}
+  int set_tx_freq(double cf);
+  void set_tx_bandwidth(double bw);
+  void set_tx_mapping(const iq_map_vec &iq_map);
+  size_t const set_tx_fft(size_t n) {return g_tx_fft_size = n;}
+  bool map_tx_samples(gr_complex *samples_buf); // called by the hypervisor
 
-  void set_subcarriers(size_t n)
-  {
-    fft_n_len = n;
-    g_fft_complex = sfft_complex(new gr::hydra::fft_complex(fft_n_len)) ;
-    g_ifft_complex = sfft_complex(new gr::hydra::fft_complex(fft_n_len, false));
-  }
 
-  /**
-   * @return g_cf The central frequency
-   */
-  double const get_central_frequency()
-  {
-    return g_cf;
-  }
-
-  /**
-   * @return Bandwidth
-   */
-  double const get_bandwidth()
-  {
-    return g_bw;
-  }
-
-  /**
-   * @param cf Central frequency
-   */
-  int set_central_frequency(double cf);
-
-  /**
-   * @param bw
-   */
-  void set_bandwidth(double bw);
-
-  /** Added the buff samples to the VR tx queue.
-   *
-   * @param samples The samples  that must be added to the VR tx queue.
-   * @param len samples lenght.
-   */
-  void add_sink_sample(const gr_complex *samples, size_t len);
-
-  /**
-   * @param iq_map
-   */
-  void set_iq_mapping(const iq_map_vec &iq_map);
-
-  /** Get samples from samples_buf that are used by this virtual radio
-   * @param samples_buf
-   */
-  void demap_iq_samples(const gr_complex *samples_buf);
-
-  /** Copy rx samples in the buff to samples_buff
-   * @param noutput_items
-   * @param samples_buff
-   * @return Number of samples mapped to samples_buff
-   */
-  size_t get_source_samples(size_t noutput_items, gr_complex *samples_buff);
-
-  /**
-   * @param samples_buf
-   */
-  bool map_iq_samples(gr_complex *samples_buf);
-
-  /**
-   */
-  bool const ready_to_map_iq_samples();
+  bool const get_rx_enabled(){ return true; };
+  size_t const get_rx_udp_port(){ return g_rx_udp_port; }
+  size_t const get_rx_fft() {return g_rx_fft_size;}
+  double const get_rx_freq() { return g_rx_cf; }
+  double const get_rx_bandwidth() {return g_rx_bw;}
+  int set_rx_freq(double cf);
+  void set_rx_bandwidth(double bw);
+  void set_rx_mapping(const iq_map_vec &iq_map);
+  size_t const set_rx_fft(size_t n) {return g_rx_fft_size = n;}
+  void demap_iq_samples(const gr_complex *samples_buf, size_t len); // called by the hypervisor
 
   /**
    */
   bool const ready_to_demap_iq_samples();
+
+private:
+  iq_map_vec g_rx_map;
+  size_t g_rx_fft_size; // Subcarriers used by this VRadio
+  size_t g_rx_udp_port;
+  bool b_receiver;
+  double g_rx_cf;      // Central frequency
+  double g_rx_bw;      // Bandwidth 
+  samples_vec g_rx_samples;
+  sfft_complex g_ifft_complex;
+  udp_sink_ptr rx_socket;
+  TxBufferPtr rx_buffer;
+  window_stream* rx_windows;
+  ReportPtr rx_report;
+
+  iq_map_vec g_tx_map;
+  size_t g_tx_fft_size; // Subcarriers used by this VRadio
+  size_t g_tx_udp_port;
+  bool b_transmitter;
+  ReportPtr tx_report;
+  double g_tx_cf;      // Central frequency
+  double g_tx_bw;      // Bandwidth 
+  sfft_complex g_fft_complex;
+  RxBufferPtr tx_buffer;
+  udp_source_ptr tx_socket;
+
+  int g_idx;        // Radio unique ID
+  std::mutex g_mutex;
+
+  // pointer to this VR hypervisor
+  Hypervisor *p_hypervisor;
 };
 
 /* TYPEDEFS for this class */
- typedef boost::shared_ptr<VirtualRadio> vradio_ptr;
- typedef std::vector<vradio_ptr> vradio_vec;
+typedef std::shared_ptr<VirtualRadio> vradio_ptr;
+typedef std::vector<vradio_ptr> vradio_vec;
 
-  } /* namespace hydra */
-} /* namespace gr */
+} /* namespace hydra */
 
 
 #endif /* ifndef INCLUDED_HYDRA_VIRTUAL_RADIO_H */

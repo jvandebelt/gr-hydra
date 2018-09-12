@@ -23,19 +23,37 @@
 
 #include <vector>
 #include <queue>
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <complex>
 
-#include <gnuradio/types.h>
+namespace hydra {
+  class abstract_device;
+  class Hypervisor;
+  class VirtualRadio;
 
-namespace gr {
-  namespace hydra {
-    typedef boost::shared_ptr<gr_complex[]> samples_ptr;
-    typedef std::vector<gr_complex> samples_vec;
-    typedef std::queue<samples_vec> samples_vec_vec;
+  typedef enum {
+    USRP,
+    IMAGE_GEN,
+  } uhd_mode;
 
-    typedef std::vector<int> iq_map_vec;
-  } /* namespace hydra */
+  typedef std::complex<float> gr_complex;
+  typedef std::complex<float> iq_sample;
+  typedef std::deque<iq_sample> iq_stream;
+  typedef std::vector<iq_sample> window;
+  typedef std::deque<window> window_stream;
 
-} /* namespace gr */
+  typedef std::vector<std::complex<float> > iq_window;
+  typedef std::shared_ptr<abstract_device> uhd_hydra_sptr;
+
+
+  typedef std::shared_ptr<gr_complex[]> samples_ptr;
+  typedef std::vector<gr_complex> samples_vec;
+  typedef std::queue<samples_vec> samples_vec_vec;
+
+  typedef std::vector<int> iq_map_vec;
+
+  typedef std::shared_ptr<Hypervisor> HypervisorPtr;
+  typedef std::shared_ptr<VirtualRadio> VirtualRadioPtr;
+} /* namespace hydra */
 
 #endif /* ifndef INCLUDED_HYDRA_TYPES_H */
